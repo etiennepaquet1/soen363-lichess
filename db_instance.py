@@ -152,8 +152,27 @@ try:
     """)
     # -------------------------------------------------------------------------
 
-    # ----- FUNCTION to check that the game result matches player participation --------
-    
+    # ----- Trigger function to ensure valid game result --------
+    cursor.execute("""
+    CREATE OR REPLACE FUNCTION validate_game_result()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        -- Check if the result is valid
+        IF NEW.result NOT IN ('1-0', '0-1', '1/2-1/2') THEN
+            RAISE EXCEPTION 'Invalid game result: %', NEW.result;
+        END IF;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    """)
+
+    # Trigger to execute the function before a new row is inserted or updated in the game table
+    cursor.execute("""
+    CREATE TRIGGER trigger_validate_game_result
+    BEFORE INSERT OR UPDATE ON game
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_game_result();
+    """)
     # -------------------------------------------------------------------------
 
     conn.commit()
