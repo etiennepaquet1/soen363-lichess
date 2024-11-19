@@ -21,6 +21,12 @@ cur = conn.cursor()
 
 # Function to insert player data
 def insert_player(player_name, elo, rating_diff, player_type):
+    # Ensure the Elo rating is within the domain limits
+    elo = safe_int(elo)
+    if elo is None or not (0 <= elo <= 3000):
+        print(f"Invalid Elo rating for player {player_name}. Skipping player.")
+        return None
+
     cur.execute("""
         INSERT INTO player (playername, elo, ratingdiff, playertype)
         VALUES (%s, %s, %s, %s)
@@ -58,12 +64,16 @@ def insert_game_moves(game_id, move_number, white_move, black_move):
 
 # safely convert Elo ratings and rating differences --> terminal error
 def safe_int(value):
+    """ Safely convert a value to an integer, return None if invalid. """
+    if value is None:
+        return None  # Or return a default value like 0 if that fits your logic
     try:
         return int(value)
-    except ValueError:
-        return None  # or you can return 0 if that's preferable
+    except (ValueError, TypeError):
+        return None  # Return None if conversion fails
 
-RECORD_LIMIT = 200 # we have more than 20K lines of data inthe .pgn file, it takes a lot of time to process all those lines, for this, we limited the reading to 200 first records only
+
+RECORD_LIMIT = 200  # we have more than 20K lines of data in the .pgn file, it takes a lot of time to process all those lines, for this, we limited the reading to 200 first records only
 
 def parse_pgn_and_insert(pgn_file_path):
     with open(pgn_file_path, 'r') as file:
@@ -86,7 +96,7 @@ def parse_pgn_and_insert(pgn_file_path):
 
         event_name, site, white_name, black_name, result, date, time, white_elo, black_elo, white_rating_diff, black_rating_diff, eco, opening, time_control, termination, moves = game
 
-        # Parse event and insert into the database
+       # Parse event and insert into the database
         event_date = f"{date} {time}"  # Combining date and time
         event_id = insert_event(event_name, 'Regular', event_date, time_control, termination, site)
 

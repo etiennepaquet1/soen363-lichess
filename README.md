@@ -16,3 +16,10 @@ docker run --name new-postgres-container --network pgnetwork -e POSTGRES_USER=ch
 ```
 pip3 install psycopg2
 ```
+
+### Steps to create the DB:
+
+1. Ensure python and postgres and docker are installed (python --version & postgres --version & docker --version)
+2. Start by running the above commands
+3. Run db_instance.py
+4. Run db_pop_pgn.py

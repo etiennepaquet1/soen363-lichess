@@ -20,21 +20,44 @@ try:
 
     cursor = conn.cursor()
 
+    # TYPE 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Player (
+    DROP TYPE IF EXISTS player_role;
+    CREATE TYPE player_role AS ENUM ('White', 'Black');
+    """)
+
+    # DOMAIN
+    cursor.execute("""
+    DROP DOMAIN IF EXISTS elo_rating;
+    CREATE DOMAIN elo_rating AS INT CHECK (VALUE >= 0 AND VALUE <= 3000);
+    """)
+
+    # Player table - ISA TABLE
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS player (
         playerID SERIAL PRIMARY KEY,
         playerName VARCHAR(255) NOT NULL,
-        elo INT,
+        elo elo_rating,  -- using the custom domain
+        --elo INT,
         ratingDiff INT,
-        playerType VARCHAR(10) CHECK (playerType IN ('White', 'Black')) NOT NULL
+        playerType player_role NOT NULL  -- using the ENUM type
+        --playerType VARCHAR(10) CHECK (playerType IN ('White', 'Black')) NOT NULL
     );
     """)
 
+    # TYPE 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Event (
+    DROP TYPE IF EXISTS event_type;
+    CREATE TYPE event_type AS ENUM ('Tournament', 'Regular');
+    """)
+
+    # Event table 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS event (
         eventID SERIAL PRIMARY KEY,
         eventName VARCHAR(255) NOT NULL,
-        eventType VARCHAR(20) CHECK (eventType IN ('Tournament', 'Regular')) NOT NULL,
+        eventtype event_type NOT NULL,
+        --eventType VARCHAR(20) CHECK (eventType IN ('Tournament', 'Regular')) NOT NULL,
         eventDate DATE NOT NULL,
         timeControl VARCHAR(20),
         termination VARCHAR(20),
@@ -42,8 +65,9 @@ try:
     );
     """)
 
+    # Game table
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Game (
+    CREATE TABLE IF NOT EXISTS game (
         gameID SERIAL PRIMARY KEY,
         eventID INT NOT NULL,
         whitePlayerID INT REFERENCES Player(playerID),
@@ -62,8 +86,9 @@ try:
     );
     """)
 
+    # Game move table -- WEAK ENTITY
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS GameMoves (
+    CREATE TABLE IF NOT EXISTS gamemoves (
         moveID SERIAL PRIMARY KEY,
         gameID INT REFERENCES Game(gameID) ON DELETE CASCADE,
         moveNumber INT,
@@ -72,9 +97,68 @@ try:
     );
     """)
 
+    # ---------------------- Full access views ---------------------------
+    cursor.execute("""
+    CREATE OR REPLACE VIEW full_access_player_view AS
+    SELECT playerID, playerName, elo, ratingDiff, playerType
+    FROM Player;
+    """)
+
+    cursor.execute("""
+    CREATE OR REPLACE VIEW full_access_event_view AS
+    SELECT eventID, eventName, eventType, eventDate, timeControl, termination, URL
+    FROM Event;
+    """)
+
+    cursor.execute("""
+    CREATE OR REPLACE VIEW full_access_game_view AS
+    SELECT gameID, eventID, whitePlayerID, blackPlayerID, result, dateTime_, 
+           whiteElo, blackElo, whiteRatingDiff, blackRatingDiff, eco, opening, 
+           timeControl, termination
+    FROM Game;
+    """)
+
+    cursor.execute("""
+    CREATE OR REPLACE VIEW full_access_game_moves_view AS
+    SELECT moveID, gameID, moveNumber, whiteMove, blackMove
+    FROM GameMoves;
+    """)
+    # -------------------------------------------------------------------------
+    # ------------------------- Restricted access views -----------------------
+    cursor.execute("""
+    CREATE OR REPLACE VIEW restricted_player_view AS
+    SELECT playerID, playerName, playerType
+    FROM Player;
+    """)
+
+    cursor.execute("""
+    CREATE OR REPLACE VIEW restricted_event_view AS
+    SELECT eventID, eventName, eventDate, eventType
+    FROM Event;
+    """)
+
+    cursor.execute("""
+    CREATE OR REPLACE VIEW restricted_game_view AS
+    SELECT gameID, eventID, whitePlayerID, blackPlayerID, result, dateTime_
+    FROM Game
+    WHERE result = '1-0' OR result = '0-1';  -- Restrict to completed games
+    """)
+
+    cursor.execute("""
+    CREATE OR REPLACE VIEW restricted_game_moves_view AS
+    SELECT moveID, gameID, moveNumber, whiteMove, blackMove
+    FROM GameMoves
+    WHERE moveNumber <= 20;  -- Limit the number of moves shown (e.g., first 20 moves)
+    """)
+    # -------------------------------------------------------------------------
+
+    # ----- FUNCTION to check that the game result matches player participation --------
+    
+    # -------------------------------------------------------------------------
+
     conn.commit()
 
-    print("Schema created successfully!")
+    print("Schema, views and function created successfully!")
 
 except Exception as e:
     print(f"An error occurred: {e}")
