@@ -37,6 +37,13 @@ try:
     CREATE TABLE IF NOT EXISTS player (
         playerID SERIAL PRIMARY KEY,
         playerName VARCHAR(255) NOT NULL,
+        gamesPlayed INT, --API
+        playTimeTotal BIGINT, --API
+        winCount INT, -- API
+        drawCount INT, -- API
+        lossCount INT, -- API
+        lastOnline TIMESTAMP, -- API
+        isStreaming BOOLEAN, -- API
         elo elo_rating,  -- using the custom domain
         --elo INT,
         ratingDiff INT,
@@ -65,6 +72,21 @@ try:
     );
     """)
 
+    #tournament -- API -- before game because game uses tournament
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tournament (
+    tournamentID SERIAL PRIMARY KEY,
+    tournamentName VARCHAR(255) NOT NULL,
+    startDate DATE NOT NULL,
+    endDate DATE,
+    tournamentType VARCHAR(50),  -- e.g., Swiss, Round Robin
+    totalRounds INT,
+    currentRound INT,
+    eventID INT REFERENCES Event(eventID) ON DELETE CASCADE,  -- Link to Event table
+    UNIQUE(tournamentName)
+    );
+    """)
+
     # Game table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS game (
@@ -82,9 +104,10 @@ try:
         opening VARCHAR(100),
         timeControl VARCHAR(20),
         termination VARCHAR(20),
-        FOREIGN KEY (eventID) REFERENCES Event(eventID) ON DELETE CASCADE
+        tournamentID INT REFERENCES tournament(tournamentID) ON DELETE SET NULL,  -- Added column API
+        FOREIGN KEY (eventID) REFERENCES event(eventID) ON DELETE CASCADE
     );
-    """)
+""")
 
     # Game move table -- WEAK ENTITY
     cursor.execute("""
@@ -96,6 +119,7 @@ try:
         blackMove VARCHAR(10)
     );
     """)
+
 
     # ---------------------- Full access views ---------------------------
     cursor.execute("""
@@ -110,18 +134,27 @@ try:
     FROM Event;
     """)
 
+    #modified
     cursor.execute("""
     CREATE OR REPLACE VIEW full_access_game_view AS
     SELECT gameID, eventID, whitePlayerID, blackPlayerID, result, dateTime_, 
-           whiteElo, blackElo, whiteRatingDiff, blackRatingDiff, eco, opening, 
-           timeControl, termination
-    FROM Game;
+        whiteElo, blackElo, whiteRatingDiff, blackRatingDiff, eco, opening, 
+        timeControl, termination, tournamentID
+    FROM game;
+
     """)
 
     cursor.execute("""
     CREATE OR REPLACE VIEW full_access_game_moves_view AS
     SELECT moveID, gameID, moveNumber, whiteMove, blackMove
     FROM GameMoves;
+    """)
+
+    cursor.execute("""
+    CREATE OR REPLACE VIEW full_access_tournament_view AS
+    SELECT tournamentID, tournamentName, startDate, endDate, tournamentType, 
+        totalRounds, currentRound, eventID
+    FROM tournament;
     """)
     # -------------------------------------------------------------------------
     # ------------------------- Restricted access views -----------------------
