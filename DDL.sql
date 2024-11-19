@@ -57,13 +57,13 @@ SELECT
     SUM(CASE WHEN g.Result = '1-0' AND g.whitePlayerID = p.PlayerID THEN 1 
              WHEN g.Result = '0-1' AND g.blackPlayerID = p.PlayerID THEN 1 ELSE 0 END) AS Wins,
     SUM(CASE WHEN g.Result = '0-1' AND g.whitePlayerID = p.PlayerID THEN 1 
-             WHEN g.Result = '1-0' AND g.BlackPlayerID = p.PlayerID THEN 1 ELSE 0 END) AS Losses,
-    SUM(CASE WHEN g.Result = '1/2-1/2' AND (g.WhitePlayerID = p.PlayerID OR g.BlackPlayerID = p.PlayerID) THEN 1 ELSE 0 END) AS Draws,
+             WHEN g.Result = '1-0' AND g.blackPlayerID = p.PlayerID THEN 1 ELSE 0 END) AS Losses,
+    SUM(CASE WHEN g.Result = '1/2-1/2' AND (g.whitePlayerID = p.PlayerID OR g.BlackPlayerID = p.PlayerID) THEN 1 ELSE 0 END) AS Draws,
     AVG(CASE WHEN g.WhitePlayerID = p.PlayerID THEN g.WhiteElo ELSE g.BlackElo END) AS AverageElo,
     AVG(CASE WHEN g.WhitePlayerID = p.PlayerID THEN g.WhiteRatingDiff ELSE g.BlackRatingDiff END) AS AverageRatingDiff
-FROM Player p
-LEFT JOIN Game g ON (g.WhitePlayerID = p.PlayerID OR g.BlackPlayerID = p.PlayerID)
-GROUP BY p.PlayerID, p.PlayerName;ù
+FROM player p
+LEFT JOIN game g ON (g.WhitePlayerID = p.PlayerID OR g.BlackPlayerID = p.PlayerID)
+GROUP BY p.PlayerID, p.PlayerName;
 
 -- Insert Example Data (just for tests)
 INSERT INTO Event (EventName, EventType, EventDate, TimeControl, Termination, Opening, URL)
