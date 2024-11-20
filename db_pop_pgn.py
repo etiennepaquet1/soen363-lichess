@@ -4,6 +4,20 @@ import requests # type: ignore
 import time
 import datetime
 from dateutil import parser # type: ignore
+from dotenv import load_dotenv # type: ignore
+import os
+import sys
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Access your API key
+API_KEY = os.getenv('API_KEY')
+
+# Check if the API_KEY is recognized 
+#if API_KEY:
+    #print("API_KEY is found.")
+    #sys.exit(1)  # Exit the script with a non-zero status to indicate an error
 
 # Database connection parameters -- to be put in .env 
 DB_HOST = 'localhost'
@@ -12,7 +26,7 @@ DB_NAME = 'chess_db'
 DB_USER = 'chessgeeks'
 DB_PASSWORD = 'soen363'
 
-API_KEY = 'lip_cCtQVPpg50AfVhvHAiht'  # Lichess API key
+
 
 # Connect to the PostgreSQL database
 conn = psycopg2.connect(

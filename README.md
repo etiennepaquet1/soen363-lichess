@@ -22,10 +22,16 @@ docker run --name new-postgres-container -e POSTGRES_USER=chessgeeks -e POSTGRES
 pip3 install psycopg2
 ```
 
-### Convert datetime in python to meet the API's data type
+#### Convert datetime in python to meet the API's data type
 
 ```
 pip install python-dateutil
+```
+
+#### Install .env : important for the API key to work
+
+```
+pip install python-dotenv
 ```
 
 ### Steps to create the DB:
