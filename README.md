@@ -56,3 +56,14 @@ python3 -m venv myenv
 ```
 source myenv/bin/activate
 ```
+
+### Files of the project
+
+- /DDL.sql : database instance script
+- /full_access_views.sql : views script with full access
+- /restricted_access_views.sql : views script with restricted access
+- /complex_function_trigger.sql : the trigger function
+- /db_instance.py : the python code to create the database instance in the database
+- /db_pop_pgn.py : the data population
+- /Queries.sql : the queries implementation
+- /lichess_db_standard_rated_2013-01.pgn : metadata file with a load of data history
