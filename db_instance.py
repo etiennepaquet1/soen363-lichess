@@ -32,7 +32,7 @@ try:
     CREATE DOMAIN elo_rating AS INT CHECK (VALUE >= 0 AND VALUE <= 3000);
     """)
 
-    # Player table - ISA TABLE
+    # Player table - ISA TABLE -- White player vs Black Player
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS player (
         playerID SERIAL PRIMARY KEY,
@@ -45,7 +45,6 @@ try:
         lastOnline TIMESTAMP, -- API
         isStreaming BOOLEAN, -- API
         elo elo_rating,  -- using the custom domain
-        --elo INT,
         ratingDiff INT,
         playerType player_role NOT NULL  -- using the ENUM type
         --playerType VARCHAR(10) CHECK (playerType IN ('White', 'Black')) NOT NULL
@@ -58,40 +57,47 @@ try:
     CREATE TYPE event_type AS ENUM ('Tournament', 'Regular');
     """)
 
-    # Event table 
+     #tournament -- API -- before game because game uses tournament
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS event (
-        eventID SERIAL PRIMARY KEY,
-        eventName VARCHAR(255) NOT NULL,
-        eventtype event_type NOT NULL,
-        --eventType VARCHAR(20) CHECK (eventType IN ('Tournament', 'Regular')) NOT NULL,
-        eventDate DATE NOT NULL,
-        timeControl VARCHAR(20),
-        termination VARCHAR(20),
-        URL VARCHAR(255)
+        CREATE TABLE IF NOT EXISTS tournament (
+        id SERIAL PRIMARY KEY,
+        tournament_id VARCHAR(255) NOT NULL,           -- Tournament ID from the API (e.g., may24lta)
+        starts_at TIMESTAMPTZ,                          -- Tournament start time
+        system VARCHAR(255),                            -- System type (e.g., arena)
+        full_name VARCHAR(255),                         -- Full name of the tournament
+        clock_limit INT,                                -- Clock limit (in seconds)
+        clock_increment INT,                            -- Clock increment (in seconds)
+        minutes INT,                                    -- Duration of the tournament in minutes
+        variant VARCHAR(255),                           -- Variant type (e.g., standard)
+        nb_players INT,                                 -- Number of players
+        rated BOOLEAN,                                  -- Whether the tournament is rated
+        berserkable BOOLEAN,                            -- Whether players can berserk
+        is_finished BOOLEAN,                            -- Whether the tournament is finished
+        UNIQUE(tournament_id)                           -- Ensure uniqueness of tournament IDs
     );
+
     """)
 
-    #tournament -- API -- before game because game uses tournament
+    # Event table -- ISA RELATIONSHIP : REGULAR OR TOURNAMENT
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS tournament (
-    tournamentID SERIAL PRIMARY KEY,
-    tournamentName VARCHAR(255) NOT NULL,
-    startDate DATE NOT NULL,
-    endDate DATE,
-    tournamentType VARCHAR(50),  -- e.g., Swiss, Round Robin
-    totalRounds INT,
-    currentRound INT,
-    eventID INT REFERENCES Event(eventID) ON DELETE CASCADE,  -- Link to Event table
-    UNIQUE(tournamentName)
-    );
+        CREATE TABLE IF NOT EXISTS event (
+        event_id SERIAL PRIMARY KEY,
+        event_name VARCHAR(255),        -- Event name (e.g., "Titled Arena May 2024")
+        event_type VARCHAR(255),        -- Event type (e.g., "Regular" OR "TOURNAMENT")
+        event_date TIMESTAMPTZ,         -- Date of the event
+        time_control VARCHAR(255),      -- Time control setting (e.g., "bullet")
+        termination VARCHAR(255),       -- Termination condition (e.g., "normal")
+        url TEXT,                       -- URL to the event
+        tournament_id VARCHAR(255),     -- Foreign key linking to the tournament
+        FOREIGN KEY (tournament_id) REFERENCES tournament(tournament_id)
+        );
     """)
 
     # Game table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS game (
         gameID SERIAL PRIMARY KEY,
-        eventID INT NOT NULL,
+        event_id INT NOT NULL,
         whitePlayerID INT REFERENCES Player(playerID),
         blackPlayerID INT REFERENCES Player(playerID),
         result VARCHAR(10) CHECK (result IN ('1-0', '0-1', '1/2-1/2')) NOT NULL,
@@ -104,12 +110,11 @@ try:
         opening VARCHAR(100),
         timeControl VARCHAR(20),
         termination VARCHAR(20),
-        tournamentID INT REFERENCES tournament(tournamentID) ON DELETE SET NULL,  -- Added column API
-        FOREIGN KEY (eventID) REFERENCES event(eventID) ON DELETE CASCADE
+        FOREIGN KEY (event_id) REFERENCES event(event_id) ON DELETE CASCADE
     );
 """)
 
-    # Game move table -- WEAK ENTITY
+    # Game move table -- WEAK ENTITY -- fully dependant on Game
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS gamemoves (
         moveID SERIAL PRIMARY KEY,
@@ -120,93 +125,112 @@ try:
     );
     """)
 
-
-    # ---------------------- Full access views ---------------------------
+    # Full access views -------------------------------------------
+    # player
     cursor.execute("""
     CREATE OR REPLACE VIEW full_access_player_view AS
     SELECT playerID, playerName, elo, ratingDiff, playerType
-    FROM Player;
+    FROM player;
     """)
 
+    # event
     cursor.execute("""
     CREATE OR REPLACE VIEW full_access_event_view AS
-    SELECT eventID, eventName, eventType, eventDate, timeControl, termination, URL
-    FROM Event;
+    SELECT event_id, event_name, event_date, time_control, termination, url, tournament_id
+    FROM event;
     """)
 
-    #modified
+    # game
     cursor.execute("""
     CREATE OR REPLACE VIEW full_access_game_view AS
-    SELECT gameID, eventID, whitePlayerID, blackPlayerID, result, dateTime_, 
-        whiteElo, blackElo, whiteRatingDiff, blackRatingDiff, eco, opening, 
-        timeControl, termination, tournamentID
+    SELECT gameID, event_id, whitePlayerID, blackPlayerID, result, dateTime_, whiteElo, blackElo, 
+        whiteRatingDiff, blackRatingDiff, eco, opening, timeControl, termination
     FROM game;
-
     """)
 
+    # game moves
     cursor.execute("""
     CREATE OR REPLACE VIEW full_access_game_moves_view AS
     SELECT moveID, gameID, moveNumber, whiteMove, blackMove
-    FROM GameMoves;
+    FROM gamemoves;
     """)
 
+    # tournament
     cursor.execute("""
     CREATE OR REPLACE VIEW full_access_tournament_view AS
-    SELECT tournamentID, tournamentName, startDate, endDate, tournamentType, 
-        totalRounds, currentRound, eventID
+    SELECT id, tournament_id, starts_at, system, full_name, clock_limit, clock_increment, 
+        minutes, variant, nb_players, rated, berserkable, is_finished
     FROM tournament;
     """)
-    # -------------------------------------------------------------------------
-    # ------------------------- Restricted access views -----------------------
+
+    # Restricted ----------------------------------------
+    # Player
     cursor.execute("""
-    CREATE OR REPLACE VIEW restricted_player_view AS
-    SELECT playerID, playerName, playerType
-    FROM Player;
+        CREATE OR REPLACE VIEW restricted_player_view AS
+        SELECT playerID, playerName, playerType
+        FROM player;
     """)
 
+    # Event 
     cursor.execute("""
-    CREATE OR REPLACE VIEW restricted_event_view AS
-    SELECT eventID, eventName, eventDate, eventType
-    FROM Event;
+        CREATE OR REPLACE VIEW restricted_event_view AS
+        SELECT event_id, event_name, event_date, event_type
+        FROM event;
     """)
 
+    # Game 
     cursor.execute("""
-    CREATE OR REPLACE VIEW restricted_game_view AS
-    SELECT gameID, eventID, whitePlayerID, blackPlayerID, result, dateTime_
-    FROM Game
-    WHERE result = '1-0' OR result = '0-1';  -- Restrict to completed games
+        CREATE OR REPLACE VIEW restricted_game_view AS
+        SELECT gameID, event_id, whitePlayerID, blackPlayerID, result, dateTime_
+        FROM game
+        WHERE result = '1-0' OR result = '0-1';
     """)
 
+    # GameMoves
     cursor.execute("""
-    CREATE OR REPLACE VIEW restricted_game_moves_view AS
-    SELECT moveID, gameID, moveNumber, whiteMove, blackMove
-    FROM GameMoves
-    WHERE moveNumber <= 20;  -- Limit the number of moves shown (e.g., first 20 moves)
-    """)
-    # -------------------------------------------------------------------------
-
-    # ----- Trigger function to ensure valid game result --------
-    cursor.execute("""
-    CREATE OR REPLACE FUNCTION validate_game_result()
-    RETURNS TRIGGER AS $$
-    BEGIN
-        -- Check if the result is valid
-        IF NEW.result NOT IN ('1-0', '0-1', '1/2-1/2') THEN
-            RAISE EXCEPTION 'Invalid game result: %', NEW.result;
-        END IF;
-        RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
+        CREATE OR REPLACE VIEW restricted_game_moves_view AS
+        SELECT moveID, gameID, moveNumber, whiteMove, blackMove
+        FROM gamemoves
+        WHERE moveNumber <= 20;
     """)
 
-    # Trigger to execute the function before a new row is inserted or updated in the game table
+    # Tournament 
     cursor.execute("""
-    CREATE TRIGGER trigger_validate_game_result
-    BEFORE INSERT OR UPDATE ON game
-    FOR EACH ROW
-    EXECUTE FUNCTION validate_game_result();
+        CREATE OR REPLACE VIEW restricted_tournament_view AS
+        SELECT tournament_id, full_name, starts_at, is_finished
+        FROM tournament;
     """)
-    # -------------------------------------------------------------------------
+
+    # COMPLEX INTEGRITY FUNCTION -> TRIGGERED
+    # Check if player exists function
+    cursor.execute("""
+        CREATE OR REPLACE FUNCTION check_player_exists() 
+        RETURNS TRIGGER AS $$
+        BEGIN
+            -- Check if the white player exists
+            IF NOT EXISTS (SELECT 1 FROM player WHERE playerID = NEW.whitePlayerID) THEN
+                RAISE EXCEPTION 'White player % does not exist', NEW.whitePlayerID;
+            END IF;
+
+            -- Check if the black player exists
+            IF NOT EXISTS (SELECT 1 FROM player WHERE playerID = NEW.blackPlayerID) THEN
+                RAISE EXCEPTION 'Black player % does not exist', NEW.blackPlayerID;
+            END IF;
+
+            -- If both players exist, allow the insert
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+    """)
+
+    # Creating the trigger to invoke the above function before inserting a new game
+    cursor.execute("""
+        CREATE TRIGGER check_players_before_game_insert
+        BEFORE INSERT ON game
+        FOR EACH ROW
+        EXECUTE FUNCTION check_player_exists();
+    """)
+
 
     conn.commit()
 

@@ -1,5 +1,8 @@
 --------------------------------- Database Design --------------------------------------
 
+-- Statement to determine the size of the database : should be higher than 300MB
+--SELECT pg_size_pretty(pg_database_size('chess_db'));
+
 -- Players (Users) -- ISA relationships
 CREATE TABLE Player (
     playerID SERIAL PRIMARY KEY,

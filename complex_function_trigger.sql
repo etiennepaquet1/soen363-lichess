@@ -1,29 +1,27 @@
 -- An example of a complex referential integrity (i.e. using assertions or triggers).
 
--- Trigger function to validate that the game result matches player participation
-
-CREATE OR REPLACE FUNCTION validate_game_result()
+-- function that will be triggered before an INSERT into the game table
+CREATE OR REPLACE FUNCTION check_player_exists() 
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Check if the result is valid for the white player
-    IF NEW.result = '1-0' AND NEW.whitePlayerID IS NULL THEN
-        RAISE EXCEPTION 'White player is missing for this game result.';
-    ELSIF NEW.result = '0-1' AND NEW.blackPlayerID IS NULL THEN
-        RAISE EXCEPTION 'Black player is missing for this game result.';
+    -- Check if the white player exists
+    IF NOT EXISTS (SELECT 1 FROM player WHERE playerID = NEW.whitePlayerID) THEN
+        RAISE EXCEPTION 'White player % does not exist', NEW.whitePlayerID;
     END IF;
 
-    -- Ensure the result corresponds to the correct player (i.e., the winner)
-    IF (NEW.result = '1-0' AND NEW.whitePlayerID IS NULL) OR
-       (NEW.result = '0-1' AND NEW.blackPlayerID IS NULL) THEN
-        RAISE EXCEPTION 'The result does not match the player participation in this game.';
+    -- Check if the black player exists
+    IF NOT EXISTS (SELECT 1 FROM player WHERE playerID = NEW.blackPlayerID) THEN
+        RAISE EXCEPTION 'Black player % does not exist', NEW.blackPlayerID;
     END IF;
 
+    -- If both players exist, allow the insert
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Create the trigger to validate the game result before insertion
-CREATE TRIGGER trigger_validate_game_result
-BEFORE INSERT ON Game
+-- Creating the trigger to invoke the above function before inserting a new game
+CREATE TRIGGER check_players_before_game_insert
+BEFORE INSERT ON game
 FOR EACH ROW
-EXECUTE FUNCTION validate_game_result();
+EXECUTE FUNCTION check_player_exists();
+
