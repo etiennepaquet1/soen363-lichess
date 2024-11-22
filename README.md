@@ -1,3 +1,11 @@
+Contibutors:
+
+Etienne Paquet - 40208596
+Kaoutar El Azzab - 40236580
+Jordan Yeh - 40283075
+Othmane Sbi - 40249134 
+
+
 # CHESS PROJECT
 
 ## Phase I
