@@ -34,6 +34,12 @@ pip install python-dateutil
 pip install python-dotenv
 ```
 
+#### Install requirements.txt
+
+```
+pip install requirements.txt
+```
+
 ### Steps to create the DB:
 
 1. Ensure python and postgres and docker are installed (python --version & postgres --version & docker --version)
@@ -67,3 +73,7 @@ source myenv/bin/activate
 - /db_pop_pgn.py : the data population
 - /Queries.sql : the queries implementation
 - /lichess_db_standard_rated_2013-01.pgn : metadata file with a load of data history
+- /backups_csv : An example of an instance of our database.
+
+
+Please read project_structure.txt for more info
