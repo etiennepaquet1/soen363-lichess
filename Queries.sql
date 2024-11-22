@@ -68,3 +68,108 @@ WHERE lastOnline IS NULL; -- i have null values only on the lastOnline column
 SELECT event_name, event_type, termination, time_control
 FROM Event
 WHERE tournament_id IS NULL;
+
+
+-- Demonstrate correlated queries (the following 2)
+
+-- Finds players with more wins than losses
+SELECT playerName
+FROM player p
+WHERE (
+    SELECT COUNT(*) 
+    FROM game g
+    WHERE (g.whitePlayerID = p.playerID AND g.result = '1-0') --player from inner query
+       OR (g.blackPlayerID = p.playerID AND g.result = '0-1') 
+) > (
+    SELECT COUNT(*) 
+    FROM game g
+    WHERE (g.whitePlayerID = p.playerID AND g.result = '0-1') --player from inner query
+       OR (g.blackPlayerID = p.playerID AND g.result = '1-0') 
+);
+
+-- Finds players who played at least 1 game
+SELECT playerName
+FROM player p
+WHERE EXISTS (
+    SELECT 1
+    FROM game g
+    WHERE (g.whitePlayerID = p.playerID OR g.blackPlayerID = p.playerID) --player from outer query
+);
+
+-- Examples of set operations vs their equivalencies without set operation
+
+--Union (berserkable tournaments or tournaments that have over 50 players)
+SELECT tournament_id, full_name
+FROM tournament
+WHERE berserkable = TRUE
+UNION
+SELECT tournament_id, full_name
+FROM tournament
+WHERE nb_players > 50;
+
+-- Union without set operation
+SELECT tournament_id, full_name
+FROM tournament
+WHERE berserkable = TRUE OR nb_players > 50;
+
+--Intersect (players with over 100 games played and have a draw count higher than 30)
+SELECT playerID, playerName
+FROM player
+WHERE gamesPlayed > 100
+
+INTERSECT
+
+SELECT playerID, playerName
+FROM player
+WHERE drawCount > 30;
+
+-- Intersect without set operation
+SELECT playerID, playerName
+FROM player
+WHERE gamesPlayed > 100
+AND drawCount > 30;
+
+-- Difference (games where white elo is higher than 1200, but lower than 1500)
+SELECT gameID
+FROM game g
+WHERE g.whiteelo > 1200
+EXCEPT
+SELECT gameID
+FROM game g
+WHERE g.whiteelo > 1500
+
+-- Difference without set operation
+
+SELECT g1.gameID
+FROM game g1
+WHERE g1.whiteelo > 1200
+AND NOT EXISTS (
+    SELECT 1
+    FROM game g2
+    WHERE g2.gameID = g1.gameID
+    AND g2.whiteelo > 1500
+);
+
+-- View with hard-coded criteria
+
+CREATE VIEW high_elo_games AS
+SELECT gameID, whitePlayerID, blackPlayerID, whiteelo, blackelo, result
+FROM game
+WHERE whiteelo > 1500; --Hard-coded criteria with games where white elo is higher than 1500
+
+-- Overlap Contraint where checks if whiteplayerID or blackplayerID exists before inserting)
+-- Attempt to insert a game with non-existent players (It will fail)
+INSERT INTO game (event_id, whitePlayerID, blackPlayerID, result, dateTime_, whiteElo, blackElo, whiteRatingDiff, blackRatingDiff, eco, opening, timeControl, termination)
+VALUES 
+(1, 9999, 9998, '1-0', '2024-11-21 10:00:00', 1500, 1400, 10, -10, 'C10', 'French Defense', 'bullet', 'normal');
+
+-- Covering Constraint
+-- Attempt to insert a game where result is an illegal value (It will fail)
+INSERT INTO game (event_id, whitePlayerID, blackPlayerID, result)
+VALUES (4, 1, 2, '3/2');
+
+
+
+
+
+
