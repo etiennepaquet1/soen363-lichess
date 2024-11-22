@@ -40,6 +40,11 @@ cur = conn.cursor()
 
 
 def insert_player(player_name, elo, rating_diff, player_type, player_api_data=None):
+
+    if player_api_data is None: # if the player is not found on the api ; aka API returns NONE, skip this player and continue
+        print(f"Skipping player {player_name} as no API data was returned.")
+        return None  # Skip the insertion for this player
+
     """Insert player into the database without updating existing players."""
     elo = safe_int(elo)
     if elo is None or not (0 <= elo <= 3000):
@@ -64,6 +69,11 @@ def insert_player(player_name, elo, rating_diff, player_type, player_api_data=No
     # Get the playTimeTotal from the player API data
     play_time_total = player_api_data.get('playTimeTotal', 0)  # Default to 0 if not provided
 
+    # Check is_streaming
+    is_streaming = player_api_data.get('streaming', False)
+    if isinstance(is_streaming, str):  # Check if it's a URL or unexpected string
+        is_streaming = False  # Set to False if the value is not a boolean
+
     # If player does not exist, insert the player
     cur.execute("""
         INSERT INTO player (playername, elo, ratingdiff, playertype, gamesplayed, wincount, drawcount, losscount, lastonline, isstreaming, playtimetotal)
@@ -76,7 +86,7 @@ def insert_player(player_name, elo, rating_diff, player_type, player_api_data=No
         player_api_data.get('draws', 0),
         player_api_data.get('losses', 0),
         last_online,  # Insert the converted datetime or None
-        player_api_data.get('streaming', False),  # Default to False if no streaming status
+        is_streaming,  # Ensure valid boolean
         play_time_total  # Insert the playTimeTotal value
     ))
     
@@ -88,6 +98,7 @@ def insert_player(player_name, elo, rating_diff, player_type, player_api_data=No
         return None
     
     return player_id
+
 
 # Fetch player data from Lichess API
 def get_player_api_data(username):
@@ -244,7 +255,7 @@ def insert_game_moves(game_id, move_number, white_move, black_move):
         VALUES (%s, %s, %s, %s);
     """, (game_id, move_number, white_move, black_move))
 
-RECORD_LIMIT = 100  # Limit to 200 records
+RECORD_LIMIT = 5000  # Limit to 5000 records
 
 # Inside parse_pgn_and_insert function
 def parse_pgn_and_insert(pgn_file_path):
