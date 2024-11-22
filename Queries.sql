@@ -169,7 +169,27 @@ INSERT INTO game (event_id, whitePlayerID, blackPlayerID, result)
 VALUES (4, 1, 2, '3/2');
 
 
+-- Division operator
+-- Find every player who has achieved every type of game termination as white
+-- a) rested query using NOT IN
 
+SELECT * FROM game
+WHERE whiteplayerid NOT IN (
+   SELECT whiteplayerid FROM (
+      (SELECT whiteplayerid , termination FROM (SELECT termination FROM event ) AS p CROSS JOIN (SELECT DISTINCT whiteplayerid FROM game) AS sp)
+        EXCEPT
+       (SELECT whiteplayerid , termination FROM game))
+     AS r
+);
+
+-- b) correlated query using NOT EXISTS and EXCEPT
+
+SELECT * FROM game AS sx
+WHERE NOT EXISTS (
+           (SELECT p.termination FROM event AS p )
+            EXCEPT
+           (SELECT sp.termination FROM game AS sp WHERE sp.whiteplayerid = sx.whiteplayerid )
+);
 
 
 
