@@ -11,6 +11,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 client = MongoClient(MONGO_URI)
 db = client['chess-db-cluster']  # Name of your database
 tournaments_collection = db['tournaments']  # Name of your collection
+players_collection = db['players']
 
 # ---------------------------- Query Implementation ---------------------------
 
@@ -37,3 +38,19 @@ pipeline = [
 result = tournaments_collection.aggregate(pipeline)
 for count in result:
     print(f"Number of rated tournaments: {count['rated_tournaments']}")
+
+
+################### Query 3 #####################
+
+# Top n entities satisfying a criteria, sorted by an attribute
+
+# Top 5 players with win count greater than 500, sorted by elo (Descending)
+n = 3
+
+result = players_collection.find({"winCount": {"$gt": 500}}).sort("elo", -1).limit(n)
+
+print(f"The top {n} players with win count greater than 500, sorted by elo (descending) are:")
+
+# For better display in terminal
+top_players_list = list(result)
+print(json.dumps(top_players_list, indent=4, default=str))
