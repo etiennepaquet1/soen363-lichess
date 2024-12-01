@@ -16,52 +16,97 @@ games_collection = db['games']
 
 # ---------------------------- Query Implementation ---------------------------
 
+# ################# Query 1 ####################
+#
+# # Search for a tournament by its tournament_id
+# tournament_id = "1hzj7nct"
+# result = tournaments_collection.find({"tournament_id": tournament_id})
+#
+# # Print the results
+# for tournament in result:
+#     #print(tournament)
+#     print(json.dumps(tournament, indent=4, default=str)) # makes the result looks pretty in the terminal
+#
+#
+# ################### Query 2 #####################
+#
+# # Aggregate query: count tournaments where "rated" is True
+# pipeline = [
+#     {"$match": {"rated": True}},  # filter: Only tournaments where "rated" is True
+#     {"$count": "rated_tournaments"}  # counting the documents matching the filter
+# ]
+#
+# result = tournaments_collection.aggregate(pipeline)
+# for count in result:
+#     print(f"Number of rated tournaments: {count['rated_tournaments']}")
+#
+#
+# ################### Query 3 #####################
+#
+# # Top n entities satisfying a criteria, sorted by an attribute
+#
+# # Top 5 players with win count greater than 500, sorted by elo (Descending)
+# n = 3
+#
+# result = players_collection.find({"winCount": {"$gt": 500}}).sort("elo", -1).limit(n)
+#
+# print(f"The top {n} players with win count greater than 500, sorted by elo (descending) are:")
+#
+# # For better display in terminal
+# top_players_list = list(result)
+# print(json.dumps(top_players_list, indent=4, default=str))
+
+
+
+
+
+
 ################# Query 1 ####################
 
 # Search for a tournament by its tournament_id
-tournament_id = "1hzj7nct"
-result = tournaments_collection.find({"tournament_id": tournament_id})
+gameID = 160000
+result = games_collection.find({"gameID": gameID})
 
 # Print the results
-for tournament in result:
+for game in result:
     #print(tournament)
-    print(json.dumps(tournament, indent=4, default=str)) # makes the result looks pretty in the terminal
+    print(json.dumps(game, indent=4, default=str)) # makes the result looks pretty in the terminal
 
 
 ################### Query 2 #####################
 
 # Aggregate query: count tournaments where "rated" is True
 pipeline = [
-    {"$match": {"rated": True}},  # filter: Only tournaments where "rated" is True
-    {"$count": "rated_tournaments"}  # counting the documents matching the filter
+    {"$match": {"timeControl": "300+0"}},  # filter: Only tournaments where "rated" is True
+    {"$count": "5+0 games"}  # counting the documents matching the filter
 ]
 
-result = tournaments_collection.aggregate(pipeline)
+result = games_collection.aggregate(pipeline)
 for count in result:
-    print(f"Number of rated tournaments: {count['rated_tournaments']}")
+    print(f"Number of rated 5+0 games: {count['5+0 games']}")
 
 
 ################### Query 3 #####################
 
 # Top n entities satisfying a criteria, sorted by an attribute
 
-# Top 5 players with win count greater than 500, sorted by elo (Descending)
-n = 3
+# Top 5 games with white elo greater than 1600, sorted by white elo (Descending)
+n = 5
 
-result = players_collection.find({"winCount": {"$gt": 500}}).sort("elo", -1).limit(n)
+result = games_collection.find(
+    {"whiteElo": {"$gte": 1600}}).sort("elo", -1).limit(n)
 
 print(f"The top {n} players with win count greater than 500, sorted by elo (descending) are:")
 
 # For better display in terminal
-top_players_list = list(result)
-print(json.dumps(top_players_list, indent=4, default=str))
-
-
+top_games_list = list(result)
+print(json.dumps(top_games_list, indent=4, default=str))
 
 
 ################### Query 4 #####################
 
 # Simulate a relational group by query in NoSQL (aggregate per category).
+
 result = games_collection.aggregate([
     {
         '$group': {
