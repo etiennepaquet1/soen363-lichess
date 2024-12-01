@@ -2,7 +2,7 @@ import json
 from pymongo import MongoClient
 from dotenv import load_dotenv # type: ignore
 import os
-
+import time
 load_dotenv()
 
 # MongoDB connection info
@@ -80,6 +80,30 @@ result = games_collection.aggregate([
 print(f"Number of games played as White by each player: ")
 games_as_white_list = list(result)
 print(json.dumps(games_as_white_list, indent=4, default=str))
+
+################### Query 6 #####################
+
+# Demonstrate a full text search. Show the performance improvement using indexes
+
+# The following 2 queries will find documents where dateTime_ has a 12 in it
+
+# Query without index using regex
+start_time = time.perf_counter()
+query_without_index = {"dateTime_": {"$regex": "12", "$options": "i"}}  # Searching for partial match
+results_without_index = list(games_collection.find(query_without_index).limit(1000))
+duration_without_index = time.perf_counter() - start_time
+print(f"Query without index (partial match) took: {duration_without_index * 1000:.6f} milliseconds")
+
+# Query with text index
+start_time = time.perf_counter()
+query_with_index = {"$text": {"$search": "12"}}  # Searching for partial match
+results_with_index = list(games_collection.find(query_with_index).limit(1000))
+duration_with_index = time.perf_counter() - start_time
+print(f"Query with text index (partial match) took: {duration_with_index * 1000:.6f} milliseconds")
+
+# Note: This process cam take some time
+
+client.close()
 
 
 
