@@ -12,6 +12,7 @@ client = MongoClient(MONGO_URI)
 db = client['chess-db-cluster']  # Name of your database
 tournaments_collection = db['tournaments']  # Name of your collection
 players_collection = db['players']
+games_collection = db['games']
 
 # ---------------------------- Query Implementation ---------------------------
 
@@ -54,3 +55,33 @@ print(f"The top {n} players with win count greater than 500, sorted by elo (desc
 # For better display in terminal
 top_players_list = list(result)
 print(json.dumps(top_players_list, indent=4, default=str))
+
+
+
+
+################### Query 4 #####################
+
+# Simulate a relational group by query in NoSQL (aggregate per category).
+result = games_collection.aggregate([
+    {
+        '$group': {
+            '_id': '$whitePlayerID',
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$sort': {
+            '_id': 1
+        }
+    }
+])
+
+print(f"Number of games played as White by each player: ")
+games_as_white_list = list(result)
+print(json.dumps(games_as_white_list, indent=4, default=str))
+
+
+
+
+
