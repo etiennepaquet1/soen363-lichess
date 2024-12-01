@@ -126,7 +126,16 @@ print(f"Number of games played as White by each player: ")
 games_as_white_list = list(result)
 print(json.dumps(games_as_white_list, indent=4, default=str))
 
-################### Query 6 #####################
+
+########### Index Creation Statements #############
+
+# db.games.createIndex( { timeControl: 1 } )
+# db.games.createIndex( { gameID: 1 } )
+# db.games.createIndex( { whiteElo: 1 } )
+# db.games.createIndex( { dateTime: "text" } )
+
+
+################### Query 5 #####################
 
 # Demonstrate a full text search. Show the performance improvement using indexes
 
