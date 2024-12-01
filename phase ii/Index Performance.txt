@@ -1,0 +1,21 @@
+Performance improvements by using indexes:
+
+Query 1:
+(Before index) 104ms
+(After index) 0ms
+
+Query 2:
+(Before index) 127ms
+(After index) 3ms
+
+Query 3:
+(Before index) 26ms (there is a bug and the result is empty when testing)
+(After index) 130ms (with correct response)
+
+Query 4:
+(Before index) 99ms
+(There was no field to index for this query)
+
+Query 5:
+(Before index) 819ms
+(After index) 574ms

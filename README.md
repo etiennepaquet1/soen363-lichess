@@ -117,3 +117,11 @@ pip install pymongo psycopg2
 - Gamemoves: The gamemoves entity, which was fully dependent on the game entity, is similarly embedded as an array of documents inside each game document. This allows all gamemoves related to a specific game to be stored directly within that game’s document, preserving the dependency while eliminating the need for a separate table and foreign key.
 
 > Please read project_structure.txt for more info
+
+
+### Query Implementation
+Our queries are written in Python in the Queries.txt file. Mongo Bash versions of the queries was used to test their runtimes.
+The index creation statements and the performance improvement notes can be found in Index Performance.txt
+
+### Files
+The database migration script is called chess_db_migration.py and it automatically migrates our project from PostgreSQL to MongoDB.
